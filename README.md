@@ -1,5 +1,6 @@
 # RAID_remount
 ## Bash script which able you to remount automaticly your RAID1  
+![Shell Script](https://img.shields.io/badge/shell_script-%23121011.svg?style=flat&logo=gnu-bash&logoColor=white)  
 Will be able soon  
 The two first version will be the APT's one and YUM's one
 
