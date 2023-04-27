@@ -1,6 +1,7 @@
 # RAID_remount
 ## Bash script which able you to remount automaticly your RAID1  
 Will be able soon  
+The two first version will be the APT's one and YUM's one
 
 ## Dependances
 I'm currently using 3 programs for my script.
