@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#Author : N1-gHT
+#Author : Alexandre L
 #Created : 26/04/2023
 #Version : 1.0 (apt version)
 # This file is part of RAID remount.
@@ -50,12 +50,12 @@ remontage_manu () {
 # Stocker les résultats de la première colonne dans un tableau
 	while read -r v1 _; do
   	vir+=("$v1")
-	done <<(cat /proc/mdstat | grep md | awk '{print $1}' )
+	done < <(cat /proc/mdstat | grep md | awk '{print $1}' )
 
 # Stocker les résultats de la deuxième colonne dans un tableau
 	while read -r p2; do
   	part+=("$p2")
-	done <<(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g")
+	done < <(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g")
 
 	for i in "${!vir[@]}"; do
   		mdadm --add /dev/${vir[$i]} /dev/$volume${part[$i]}
@@ -70,12 +70,12 @@ remontage_auto () {
 # Stocker les résultats de la première colonne dans un tableau
 	while read -r v1 _; do
   	vir+=("$v1")
-	done <<(cat /proc/mdstat | grep md | awk '{print $1}' )
+	done < <(cat /proc/mdstat | grep md | awk '{print $1}' )
 
 # Stocker les résultats de la deuxième colonne dans un tableau
 	while read -r p2; do
   	part+=("$p2")
-	done <<(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g" )
+	done < <(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g" )
 
 	for i in "${!vir[@]}"; do
   		mdadm --add /dev/${vir[$i]} /dev/$volume${part[$i]}
