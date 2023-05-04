@@ -16,5 +16,6 @@ When the first version will be release, I will work on 2 diferent ways :
   I will working on the capacity of my code to be usefull for other RAID than only RAID 1.  
   This means implementing RAID 0, 5, and 10.
 * Improving the code  
-  Improve error feedback and enforce root user verification.  
+  Improve error feedback and enforce root user verification. 
+    * exit when nwipe or sgidsk error append + log
   Take useful code elements from nwipe and gdisk and integrate them into my own code.  
