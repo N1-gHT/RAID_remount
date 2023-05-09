@@ -38,7 +38,7 @@ demande_volume () {
 		echo "Le format est bon et le disque existe"
 	else 	
 		echo "Il semble que le disque n'existe pas ! " 
-		pkill -f raid_remount_yum1.sh
+		exit 1
 	fi
 	}
 #Nous permet de remonter le RAID quasiment automatiquement
@@ -236,7 +236,7 @@ menu () {
 		else 
 			clear
 			echo "Impossible d'installer les paquets vérifier que vous êtes connecté à internet"
-			pkill -f raid_remount_yum.sh
+			exit 1
 		fi
 	fi
 	}
