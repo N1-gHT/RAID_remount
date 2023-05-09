@@ -23,36 +23,36 @@
 # Clause de non-responsabilité standard : l'auteur n'assume aucune responsabilité en cas de dommages.
 #
 
-#permet de demander le volum,vérifier que le format démandé est bon mais aussi tester l'existence du disque
-# on récupère le nom du volume dans la variable $volume, on teste si le volume existe
+# ask for a disk, check his existence and the format 
+# we use the variable $volume to keep the information about the volume
 
 demande_volume () {
 	echo 
-	echo -e "Veuillez indiquer le volume souhaité (format sdx)"
-	echo -e "Ou appuyer sur ctrl+c pour sortir"
+	echo -e "Please indicate the desired volume (format sdx)"
+	echo -e "Or press ctrl+c to exit"
 	read volume
 	if [[ -b /dev/$volume ]]
 	then 
-		echo "Le format est bon et le disque existe"
+		echo "Format is good and disk exist"
 	else 	
-		echo "Il semble que le disque n'existe pas ! " 
-		pkill -f raid_remount_apt.sh
+		echo "it seems that the disk doesn't exist" 
+		exit 1
 	fi
 	}
-#Nous permet de remonter le RAID quasiment automatiquement
+# Able us to remount the RAID automatically
 remontage_manu () {
 	demande_volume
 	volume_2=$(lsblk -o NAME,TYPE |  grep -v $volume | grep "disk" | awk '{print $1}')
-	# Initialiser les tableaux
+# Array init
 	vir=()
 	part=()
 
-# Stocker les résultats de la première colonne dans un tableau
+# Store the result of the firt column in an array
 	while read -r v1 _; do
   	vir+=("$v1")
 	done < <(cat /proc/mdstat | grep md | awk '{print $1}' )
 
-# Stocker les résultats de la deuxième colonne dans un tableau
+# Store the result of the second column in an array and remount the raid
 	while read -r p2; do
   	part+=("$p2")
 	done < <(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g")
@@ -63,16 +63,16 @@ remontage_manu () {
 }
 remontage_auto () {
 	
-# Initialiser les tableaux
+# Array init
 	vir=()
 	part=()
 
-# Stocker les résultats de la première colonne dans un tableau
+# Store the result of the firt column in an array
 	while read -r v1 _; do
   	vir+=("$v1")
 	done < <(cat /proc/mdstat | grep md | awk '{print $1}' )
 
-# Stocker les résultats de la deuxième colonne dans un tableau
+# Store the result of the second column in an array and remount the raid
 	while read -r p2; do
   	part+=("$p2")
 	done < <(cat /proc/mdstat | grep md | awk '{print $5}' | rev | cut -c4- | rev | sed "s/$volume_2//g" )
@@ -81,104 +81,106 @@ remontage_auto () {
   		mdadm --add /dev/${vir[$i]} /dev/$volume${part[$i]}
 	done
 }
-# Va permettre de lancer automatiquement NWIPE sur le disque demandé
+# Launch NWIPE for the desire volume
 
 formatage () {
 	demande_volume
 	clear
-	echo "Choix de procédure"
-	echo -e " A : Procédure automatisé (Pour remontage automatisé du RAID)"
-	echo -e " M : Procédure manuelle (Expert Mode)"
-	echo "Volume choisi : $volume"
-	read -n1 -p "Faites votre choix :" optionformat_2
+	echo "Choice of process"
+	echo -e " A : automated process (for automated remount of the RAID)"
+	echo -e " M : manual process (Expert Mode)"
+	echo "Selected volume : $volume"
+	read -n1 -p "make your choice :" optionformat_2
 	
 	case $optionformat_2 in
 		a|A)
 			echo "\n Poursuite procédure automatisé"
 			nwipe --method=quick /dev/$volume
+			clear
 			copie_table_auto
 			;;
 		m|M)
 			echo "\n Formatage en cours"
 			nwipe --method=quick /dev/$volume
+			clear
 		
-			echo -e "1 : Copier la table de parition"
-			echo -e "2 : Arrêter le programme"
-			read -n1 -p "Que voulez-vous faire ensuite ?" optionformat_1
+			echo -e "1 : Copying the partition table"
+			echo -e "2 : Stop the program"
+			read -n1 -p "What do you want to do ?" optionformat_1
 		
 			case $optionformat_1 in
 				1)
-					echo " \n Poursuite pour copier la table de partition"
+					echo " \n Continue to copy the partition table"
 					copie_table_manu
 					;;
 				2)
-					echo "\n Arrêt du programme"
+					echo "\n Stopping the program"
 					exit;;
 				*)
-					echo "\n Mauvais choix veuilez choisir 1 ou 2"
+					echo "\n Bad choice choose 1 or 2"
 					formatage
 					;;
 			esac
 			;;
 		*)
-			echo "vous avez réalisé un mauvais choix"
+			echo "You make a bad  choice"
 			formatage
 			;;
 	esac
 }
 
-#Permet de copier automatiquement la table de partition (en ayant le volume sur lequel on doit copier)
+# Copy the partition table in volume 
 
 copie_table_auto () {
-	echo "Copie en cours"
+	echo "Copy in progress"
 	volume_2=$(lsblk -o NAME,TYPE |  grep -v $volume | grep "disk" | awk '{print $1}')
 	sgdisk /dev/$volume_2 -R /dev/$volume
 	sgdisk -G /dev/$volume
-	echo "Copie fini"
+	echo "Copy ended"
 	remontage_auto
 }
 
 copie_table_manu () {
-	echo "Copie en cours"
+	echo "Copy in progress"
 	volume_2=$(lsblk -o NAME,TYPE |  grep -v $volume | grep "disk" | awk '{print $1}')
 	sgdisk /dev/$volume_2 -R /dev/$volume
 	sgdisk -G /dev/$volume
-	echo "Copie fini"
+	echo "Copy ended"
 }
 
-#Test si la table a des partitions, demande si on veut formater ou pas s'il y a des partitions sinon passe à l'étape suivante
+#test if the disk contains partitions, ask if we want to formate or not, if not go to the next step
 	
 test_table_parition () {
 	demande_volume
 	if [[ $(lsblk "/dev/$volume" | sed -n "/$volume[1-9]/p" | wc -l ) -gt 0 ]]; then
-		echo "Le volume /dev/$demande_volume contient des partitions"
-		echo "Voulez-vous le formater ?"
-		echo -e "O : Oui"
-		echo -e "N : Non"
-		read -n1 -p "Veuillez choisir : " optionpart
+		echo "Volume /dev/$demande_volume contains partitions"
+		echo "Do you want to formate ?"
+		echo -e "O : Yes"
+		echo -e "N : No"
+		read -n1 -p "Make a choice : " optionpart
 
 		case $optionpart in
 			o|O)
-				echo -e "\n Le Formatage va débuter"
+				echo -e "\n Formatting will start"
 				nwipe /dev/$volume
 				;;
 			n|N)
-				echo -e "\n Nous allons poursuivre"
+				echo -e "\n We keep going"
 				copie_table
 				;;
 			*)
-				echo "\n Vous avez réalisé un mauvais choix"
+				echo "\n You make a bad choice"
 				test_table_partition
 				;;
 		esac
 	else
-		echo "Le volume /dev/$volume ne contient pas de partitions"
+		echo "Volume /dev/$volume do not contains partitions"
 		copie_table
 	fi
 	}
 
-#Base de départ avec choix des différents points de départs voulus
-#Et test de présence des différents logiciels nécessaires (nwipe et gdisk)
+# Start of all the program
+# Test of the different program needed (nwipe et gdisk)
 
 menu () {
 	test=$( dpkg -l | grep nwipe )
@@ -186,61 +188,61 @@ menu () {
 	clear
 	if [[ ! -z "$test" && ! -z "$test_2" ]]
 	then
-	echo "Les logiciels nécessaires sont bien installé"
+	echo "Necessary software are installed"
 	echo 
-	echo -e "Que voulez-vous faire ?"
-	echo -e "A : Remontage automatique complet (Recommandé)"
+	echo -e "What do you want to do ?"
+	echo -e "A : Full automatic reassembly (Recommended)"
 	
-	echo "Mode expert, NE FAIRE QUE SI ON CONNAÎT"
+	echo "Expert Mode, DO ONLY IF YOU KNOW"
 	
-	echo -e "F : Formater le nouveau disque dur"
-	echo -e "C : Copier la table de partition"
-	echo -e "R : Remonter le Raid"
-	echo -e "S : Arrêter le programme"
-	read -n1 -p "Veuillez choisir : " optionmenu
+	echo -e "F : Formate new disk"
+	echo -e "C : Copy partition table"
+	echo -e "R : Remount the Raid"
+	echo -e "S : Stop the program"
+	read -n1 -p "Make a choice : " optionmenu
 	
 	case $optionmenu in
 		a|A)
-			echo -e "\n Remontage complet automatique"
+			echo -e "\n Full automatic reassembly"
 			formatage
 			;;
 		f|F)
-			echo -e "\n Formatage du nouveau disque"
+			echo -e "\n Formatting the new disk"
 			formatage
 			;;
 		c|C)
-			echo -e "\n Copie table de parition"
+			echo -e "\n copy partition table"
 			test_table_parition
 			;;
 		r|R)
-			echo -e "\n Remontage raid"
+			echo -e "\n Remount raid"
 			remontage_manu
 			;;
 		s|S)
-			echo -e "\n Sortie du programme"
+			echo -e "\n Exit the program"
 			exit;;
 		*)
-			echo -e "\n Erreur de frappe"
+			echo -e "\n Typing error"
 			menu;;
 	esac
 	else 
-		echo "Les logiciels nécessaires ne sont pas installés"
-		echo "L'installation va débuter"
+		echo "Necessary software are not installed"
+		echo "Installation begin"
 		apt install gdisk
 		apt install nwipe
 		if dpkg -s gdisk &> /dev/null && dpkg -s nwipe &> /dev/null; then
 			menu
 		else 
 			clear
-			echo "Impossible d'installer les paquets vérifier que vous êtes connecté à internet"
-			pkill -f raid_remount_apt.sh
+			echo "Unable to install packages, please check your connection"
+			exit 1
 		fi
 	fi
 	}
-
+	
 if [[ $(id -u) -ne 0 ]]
 then
-	echo "L'utilisateur doit être root"
+	echo "You need to be root"
 	exit 1
 else
 	menu
