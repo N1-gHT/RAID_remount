@@ -241,10 +241,10 @@ menu () {
 	fi
 	}
 
-if [[ $(id -u) -ne à ]]
+if [[ $(id -u) -ne 0 ]]
 then
 	echo "L'utilisateur doit être root"
 	exit 1
 else
 	menu
-
+fi
