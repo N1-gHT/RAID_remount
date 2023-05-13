@@ -183,8 +183,8 @@ test_table_parition () {
 # Test of the different program needed (nwipe et gdisk)
 
 menu () {
-	test=$( dpkg -l | grep nwipe )
-	test_2=$( dpkg -l | grep gdisk)
+	test=$( yum list installed | grep nwipe )
+	test_2=$( yum list installed | grep gdisk)
 	clear
 	if [[ ! -z "$test" && ! -z "$test_2" ]]
 	then
